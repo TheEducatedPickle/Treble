@@ -14,6 +14,7 @@ def get_features(lyrics: 'string'):
     return lines
     
 def classify(artist, track):
+    #Lyric retrieval
     lyrics = PyLyrics.getLyrics(artist,track)
     lyrics = get_features(lyrics)
     print(lyrics)

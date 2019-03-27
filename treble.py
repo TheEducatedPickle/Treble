@@ -1,55 +1,103 @@
 import sys
 import spotipy
+import os
 import spotipy.util as util
-try:
-	import configparser
-except:
-	import ConfigParser
+import random
+scope = 'user-library-read playlist-modify-public playlist-modify-private'
 
+def list_of_artists(sp):
+    artists = set()
+    for item in get_user_playlists(sp)['items']:
+        for a in sp.user_playlist(sys.argv[1],item['id'])['tracks']['items']:
+            track_artist=a['track']['artists'][0]['id']
+            artists.add(track_artist)
+    return list(artists)
 
-config = configparser.ConfigParser()
+def create_playlist(sp,name):
+        curr_user_id=sp.current_user()['id']
+        new_playlist=sp.user_playlist_create(curr_user_id,name,public=True)
+        return new_playlist
 
-def show_tracks(results):
-    for i, item in enumerate(results['items']):
-        track = item['track']
-        print("   %d %32.32s %s" % (i, track['artists'][0]['name'], track['name']))
+def reorder_playlist(sp,name):
+        playlist = playlist_given_name(sp,name)
+        length =  len(sp.user_playlist(username,item['id'])['tracks']['items'])-1
+        for i in range(1,length):
+            random_number=random.randint(1,length)
+            while random_number!=i:
+                random_number=random.randint(1,length)
+            sp.user_playlist_reorder_track(sp.current_user()['id'],playlist['id'],i,random_number,1,snapshot_id=None)
 
-def configure():
-    global SPOTIFY_CLIENT_ID
-    global SPOTIPY_CLIENT_SECRET
-    global SPOTIPY_REDIRECT_URI
-    config.read('config.ini')
-    SPOTIFY_CLIENT_ID = config['AUTH']['SPOTIPY_CLIENT_ID']
-    SPOTIPY_CLIENT_SECRET = config['AUTH']['SPOTIPY_CLIENT_SECRET']
-    SPOTIPY_REDIRECT_URI = config['AUTH']['SPOTIPY_REDIRECT_URI']
+def playlist_from_rec(sp,name):
+    playlist = playlist_given_name(sp,name)
+    lists = list(list_of_artists(sp))
+    lists = lists[:5]
+    for item in sp.recommendations(seed_artists=lists,seed_genres=None,seed_tracks=None,limit=100,country=None)['tracks']:
+        uris = []
+        uris.append(item['uri'])
+        sp.user_playlist_add_tracks(sp.current_user()['id'],playlist['id'],uris,position=None)
 
-def main():
-    configure()
+def recs_by_genre(sp, name, genres=None):
+    if genres==None:
+        playlist_from_rec(sp, name)
+    else:
+        playlist = playlist_given_name(sp,name)
+        lists = list(list_of_artists(sp))
+        lists = lists[:5]
+        for item in sp.recommendations(seed_artists=lists,seed_genres=None,seed_tracks=None,limit=100,country=None)['tracks']:
+            print(item)
+            uris = []
+            uris.append(item['uri'])
+            sp.user_playlist_add_tracks(sp.current_user()['id'],playlist['id'],uris,position=None)
+
+def playlist_given_name(sp, target):
+    for item in get_user_playlists(sp)['items']:
+        if item['name']==target:
+            return item
+    return create_playlist(sp,target)
+    
+def get_user_playlists(sp):
+    playlists =sp.current_user_playlists(limit=50,offset=0)
+    return playlists
+
+def create_playlist_from_favorites(sp,name):
+        results = sp.current_user_saved_tracks()
+        curr_user_id=sp.current_user()['id']
+        fav_playlist = playlist_given_name(sp,name)
+        for item in results['items']:
+            track = item['track']
+            tracks = []
+            tracks.append(track['uri'])
+            temp = sp.user_playlist_add_tracks(curr_user_id,fav_playlist['id'],tracks,position=None)
+            #print(track['artists'])
+            #print (track['name'] + ' - ' + track['artists'][0]['name'])
+
+if __name__ == "__main__":
     if len(sys.argv) > 1:
         username = sys.argv[1]
     else:
-        print("Whoops, need your username!")
-        print("usage: python user_playlists_contents.py [username]")
+        print("Usage: ",sys.argv[0], "username")
         sys.exit()
 
-    token = util.prompt_for_user_token(username)
+    token = util.prompt_for_user_token(username, scope)
+    if not token: 
+        print ("Can't get token for", username)
+    sp = spotipy.Spotify(auth=token)
 
-    if token:
-        sp = spotipy.Spotify(auth=token)
-        playlists = sp.user_playlists(username)
-        for playlist in playlists['items']:
-            if playlist['owner']['id'] == username:
-                print()
-                print(playlist['name'])
-                print('  total tracks', playlist['tracks']['total'])
-                results = sp.user_playlist(username, playlist['id'], fields="tracks,next")
-                tracks = results['tracks']
-                show_tracks(tracks)
-                while tracks['next']:
-                    tracks = sp.next(tracks)
-                    show_tracks(tracks)
-    else:
-        print("Can't get token for", username)
-
-if __name__ == '__main__':
-    main()
+    create_playlist_from_favorites(sp,"Favorites")
+    recs_by_genre(sp,"Rec")
+    #print(sp.recommendation_genre_seeds())
+    #for item in get_user_playlists(token)['items']:
+        #print(item['name'])
+        #print()
+        #for a in sp.user_playlist(username,item['id'])['tracks']['items']:
+            #print()
+            #track_name = a['track']['name']
+            #track_artist=a['track']['artists'][0]['name']
+            #print(a['track']['name'])
+            #print(a['track']['artists'][0].keys())
+            #print(a['track']['artists'][0]['name'])
+            #print(sp.audio_features(a['track']['id'])[0])
+        #print(len(sp.user_playlist(username,item['id'])['tracks']['items']))
+        #print()
+    #create_playlist_from_favorites(token)
+    
