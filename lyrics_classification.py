@@ -18,6 +18,6 @@ def classify(artist, track):
     lyrics = PyLyrics.getLyrics(artist,track)
     lyrics = get_features(lyrics)
     print(lyrics)
-    
+
 if __name__ == '__main__':
     classify('Taylor Swift','Blank Space')
