@@ -86,8 +86,11 @@ def get_lyrics(): #Creates a dict that maps artist to a list of song and lyric t
             print("Lyrics were found for", song, "by", artist)
         except:
             print("Lyrics were not found for ", song, " by ", artist)
+        if lyrics:
+            lyrics = ' '.join(lyrics.split()).lower()
+            #lyrics = lyrics.replace("\\","")
         artists_and_songs[artist].append((song, lyrics))
-        return artists_and_songs #TODO: Return at end of for loop instead when not testing
+    return artists_and_songs #TODO: Return at end of for loop instead when not testing
 
 def get_lyric_map():
     artist_to_song_lyric = get_lyrics()
@@ -97,6 +100,64 @@ def get_lyric_map():
             if tup[1] is not None:
                 reverse_search_map[tup[1]] = (artist, tup[0])
     return artist_to_song_lyric, reverse_search_map
+
+def search_song_from_lyrics(lyric_map, key):
+    for lyrics, data in lyric_map.items():
+        if key in lyrics:
+            return data
+    return None
+
+def getInput():
+    # Acts as user interface, gets user input and runs appropriate functions
+    print('Welcome to Treble!')
+    print()
+    print('Commands:')
+    print(' - discover <new playlist name> <genre>')
+    print(' - favorites <new playlist name>')
+    print(' - search <lyric>')
+    print()
+    print('Type help for more information')
+    print()
+    artist_to_song_lyric_tuple = None
+    reverse_search_map = None
+    while True:
+        command = input('').lower().split()
+        if (command[0] == 'discover'):
+            try:
+                recs_by_genre(command[1], command[2] if len(command) == 2 else None)
+                print("Recommendation playlist named", command[1],"created!")
+                print()
+            except:
+                print("Usage: discover <new name> <genres>")
+        elif (command[0] == 'favorites'):
+            try:
+                create_playlist_from_favorites(command[1])
+                print("Favorites playlist named", command[1],"created!")
+                print()
+            except:
+                print("Usage: favorites <new name> <genres>")
+                print()
+        elif (command[0] == 'search'):
+            if reverse_search_map == None:
+                print("Indexing songs, please wait...")
+                artist_to_song_lyric_tuple, reverse_search_map = get_lyric_map()
+                print()
+            print('Searching for song with the lyrics "'+command[1]+'"')
+            query = ' '.join(map(lambda x: x.lower(), command[1:]))
+            data = search_song_from_lyrics(reverse_search_map, query)
+            if data:
+                print('Song found:',data[1],'by',data[0])
+            else:
+                print('No song found matching the lyrics: "'+query+'"')
+            print()
+        elif (command[0] == 'refresh'):
+            print("Refreshing, please wait...")
+            artist_to_song_lyric_tuple, reverse_search_map = get_lyric_map()
+            print("Refresh complete!")
+            print()
+        elif (command[0] == 'exit' or command[0] == 'quit'):
+            sys.exit()
+
 
 if __name__ == "__main__":
     global sp
@@ -112,7 +173,8 @@ if __name__ == "__main__":
     sp = spotipy.Spotify(auth=token)
 
     #create_playlist_from_favorites(sp,"Favorites")
-    artist_to_song_lyric_tuple, reverse_search_map = get_lyric_map()
-    print(reverse_search_map)
+    #artist_to_song_lyric_tuple, reverse_search_map = get_lyric_map()
+    #print(reverse_search_map)
     #recs_by_genre("Rec")
+    getInput()
     
