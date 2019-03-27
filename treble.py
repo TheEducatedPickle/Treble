@@ -47,11 +47,14 @@ def recs_by_genre(name, genres=None):
         playlist = playlist_given_name(name)
         lists = list(list_of_artists())
         lists = lists[:5]
-        for item in sp.recommendations(seed_artists=lists,seed_genres=None,seed_tracks=None,limit=100,country=None)['tracks']:
-            print(item)
-            uris = []
-            uris.append(item['uri'])
-            sp.user_playlist_add_tracks(sp.current_user()['id'],playlist['id'],uris,position=None)
+        try:
+            for item in sp.recommendations(seed_artists=lists,seed_genres=genres,seed_tracks=None,limit=100,country=None)['tracks']:
+                print(item)
+                uris = []
+                uris.append(item['uri'])
+                sp.user_playlist_add_tracks(sp.current_user()['id'],playlist['id'],uris,position=None)
+        except:
+            print('Error: Genre not valid')
 
 def playlist_given_name(target):
     for item in get_user_playlists()['items']:
@@ -83,14 +86,14 @@ def get_lyrics(): #Creates a dict that maps artist to a list of song and lyric t
         lyrics = None
         try:
             lyrics = PyLyrics.getLyrics(artist,song)
-            print("Lyrics were found for", song, "by", artist)
+            #print("Lyrics were found for", song, "by", artist)
         except:
-            print("Lyrics were not found for ", song, " by ", artist)
+            print(" Index Warning: Lyrics were not found for ", song, " by ", artist)
         if lyrics:
             lyrics = ' '.join(lyrics.split()).lower()
             #lyrics = lyrics.replace("\\","")
         artists_and_songs[artist].append((song, lyrics))
-    return artists_and_songs #TODO: Return at end of for loop instead when not testing
+        return artists_and_songs #TODO: Return at end of for loop instead when not testing
 
 def get_lyric_map():
     artist_to_song_lyric = get_lyrics()
@@ -102,10 +105,11 @@ def get_lyric_map():
     return artist_to_song_lyric, reverse_search_map
 
 def search_song_from_lyrics(lyric_map, key):
+    out = []
     for lyrics, data in lyric_map.items():
         if key in lyrics:
-            return data
-    return None
+            out.append(data)
+    return out
 
 def getInput():
     # Acts as user interface, gets user input and runs appropriate functions
@@ -115,6 +119,7 @@ def getInput():
     print(' - discover <new playlist name> <genre>')
     print(' - favorites <new playlist name>')
     print(' - search <lyric>')
+    print(' - refresh')
     print()
     print('Type help for more information')
     print()
@@ -141,12 +146,15 @@ def getInput():
             if reverse_search_map == None:
                 print("Indexing songs, please wait...")
                 artist_to_song_lyric_tuple, reverse_search_map = get_lyric_map()
+                print("Indexing complete!")
                 print()
             print('Searching for song with the lyrics "'+command[1]+'"')
             query = ' '.join(map(lambda x: x.lower(), command[1:]))
-            data = search_song_from_lyrics(reverse_search_map, query)
-            if data:
-                print('Song found:',data[1],'by',data[0])
+            matches = search_song_from_lyrics(reverse_search_map, query)
+            if len(matches) > 0:
+                print('Songs found:')
+                for data in matches:
+                    print(' -',data[1],'by',data[0])
             else:
                 print('No song found matching the lyrics: "'+query+'"')
             print()
