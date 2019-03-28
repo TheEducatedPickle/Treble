@@ -7,8 +7,6 @@ from collections import defaultdict
 from PyLyrics import *
 scope = 'user-library-read playlist-modify-public playlist-modify-private'
 
-global sp
-
 def list_of_artists():
     artists = set()
     for item in get_user_playlists()['items']:
@@ -129,7 +127,7 @@ def getInput():
         command = input('').lower().split()
         if (command[0] == 'discover'):
             try:
-                recs_by_genre(command[1], command[2] if len(command) == 2 else None)
+                recs_by_genre(command[1], command[2] if len(command) == 3 else None)
                 print("Recommendation playlist named", command[1],"created!")
                 print()
             except:
@@ -168,13 +166,12 @@ def getInput():
 
 
 if __name__ == "__main__":
-    global sp
+    sp = None
     if len(sys.argv) > 1:
         username = sys.argv[1]
     else:
         print("Usage: ",sys.argv[0], "username")
         sys.exit()
-
     token = util.prompt_for_user_token(username, scope)
     if not token: 
         print ("Can't get token for", username)
