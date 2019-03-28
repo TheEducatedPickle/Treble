@@ -90,7 +90,7 @@ def get_lyrics(): #Creates a dict that maps artist to a list of song and lyric t
         except:
             print(" Index Warning: Lyrics were not found for ", song, " by ", artist)
         if lyrics:
-            lyrics = ' '.join(lyrics.split()).lower()
+            lyrics = ' '.join(lyrics.split()).lower().replace("'","")
             #lyrics = lyrics.replace("\\","")
         artists_and_songs[artist].append((song, lyrics))
         return artists_and_songs #TODO: Return at end of for loop instead when not testing
@@ -149,7 +149,7 @@ def getInput():
                 print("Indexing complete!")
                 print()
             print('Searching for song with the lyrics "'+command[1]+'"')
-            query = ' '.join(map(lambda x: x.lower(), command[1:]))
+            query = ' '.join(map(lambda x: x.lower().replace("'",""), command[1:]))
             matches = search_song_from_lyrics(reverse_search_map, query)
             if len(matches) > 0:
                 print('Songs found:')
